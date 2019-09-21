@@ -17,5 +17,12 @@ int main(int const argc, char const *argv[])
 
 	dyn_str_extend(s, "boobs");
 	dyn_str_show(s);
+
+	dyn_str_extend(s, "tits");
+	dyn_str_show(s);
+
+	dyn_str_delete(s);
+	dyn_str_show(s);
+
 }
 

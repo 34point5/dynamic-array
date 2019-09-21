@@ -95,97 +95,27 @@ _Bool dyn_str_extend(dyn_str_t dyn_str, char *s)
 			return 0;
 		}
 		dyn_str->String = temp;
-
-		// append the characters of the second string to the first
-		char *ptr = dyn_str->String + dyn_str->Length;
-		memcpy(ptr, s, s_length + 1);
-		dyn_str->Length = required - 1;
-
-		return 1;
 	}
 
+	// now there is enough space to extend the string
+	// append the second string to the first
+	char *ptr = dyn_str->String + dyn_str->Length;
+	memcpy(ptr, s, s_length + 1);
+	dyn_str->Length = required - 1;
+
+	return 1;
 }
-	// // set the lenth of the array
-	// // 'size' is unsigned, so no need to check for negative value
-	// // it is your responsibility to provide a sane input
-	// a->length = size;
 
-	// // try to allocate space for array
-	// // keep some space to allow the array to grow
-	// size = (size + 1) << 1;
-	// if(clear)
-	// {
-	// 	a->array = calloc(size, sizeof *a->array);
-	// }
-	// else
-	// {
-	// 	a->array = malloc(size * sizeof *a->array);
-	// }
-	// if(a->array == NULL)
-	// {
-	// 	printf("Failed to initialise dynamic array!\n");
-	// 	return 0;
-	// }
+///////////////////////////////////////////////////////////////////////////////
 
-	// // allow the array to grow till this length
-	// a->capacity = size;
+// delete synamic string
+void dyn_str_delete(dyn_str_t dyn_str)
+{
+	free(dyn_str->String);
+	free(dyn_str);
+	return;
+}
 
-	// return 1;
-// }
-
-// ///////////////////////////////////////////////////////////////////////////////
-// 
-// // return the length of the dynamic array
-// size_t dyn_arr_len(Array *a)
-// {
-// 	return a->length;
-// }
-// 
-// ///////////////////////////////////////////////////////////////////////////////
-// 
-// // append an element to the end of the array
-// _Bool dyn_arr_append(Array *a, char element)
-// {
-// 	// check whether the array is full
-// 	if(a->length == a->capacity)
-// 	{
-// 		// array is full
-// 		// double the array capacity
-// 		a->capacity <<= 1;
-// 
-// 		// create temporary pointer in case reallocation fails
-// 		char *temp;
-// 		temp = realloc(a->array, a->capacity * sizeof *temp);
-// 		if(temp == NULL)
-// 		{
-// 			printf("Failed to append to dynamic array!\n");
-// 			return 0;
-// 		}
-// 		a->array = temp;
-// 	}
-// 
-// 	// append the element
-// 	// also increase the element counter
-// 	a->array[a->length++] = element;
-// 
-// 	return 1;
-// }
-// 
-// ///////////////////////////////////////////////////////////////////////////////
-// 
-// // delete the dynamic array
-// void dyn_arr_delete(Array *a, _Bool clear)
-// {
-// 	// erase the contents of the array if required
-// 	if(clear)
-// 	{
-// 		memset(a->array, 0, a->capacity);
-// 	}
-// 
-// 	// release memory used by the array as well as the structure
-// 	free(a->array);
-// }
-// 
 // ///////////////////////////////////////////////////////////////////////////////
 // 
 // // pop the last element in the array
