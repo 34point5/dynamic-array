@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define FAILURE_RETURN_VALUE 0
+#define SUCCESS_RETURN_VALUE 1
+
 ///////////////////////////////////////////////////////////////////////////////
 
 // dynamic string structure
@@ -15,8 +18,22 @@ typedef struct
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// initialise dynamic string
-// set its attributes according to the provided string
+// calculate the nearest power of 2 greater than the input number
+int nearest_power_of_2(size_t size)
+{
+	int power = 0;
+	while(size)
+	{
+		size >>= 1;
+		++power;
+	}
+	return power;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+// create a dynamic string
+// initialise it according to the provided string
 dyn_str_t dyn_str_init(char *s)
 {
 	// allocate memory for struct
@@ -28,22 +45,16 @@ dyn_str_t dyn_str_init(char *s)
 	}
 
 	// calculate least power of 2 which is greater than length of string
-	int power = 0;
 	size_t s_length = strlen(s);
-	size_t s_length_backup = s_length;
-	while(s_length)
-	{
-		s_length >>= 1;
-		++power;
-	}
+	int power = nearest_power_of_2(s_length);
 
 	// set attributes of struct
 	// 'Capacity' shall always be greater than 'Length'
 	// because an extra slot is required for '\0'
-	dyn_str->Capacity = 1 << power;
-	dyn_str->Length = s_length_backup;
+	dyn_str->Capacity = 1 << (size_t)power;
+	dyn_str->Length = s_length;
 	dyn_str->String = malloc(dyn_str->Capacity * sizeof *(dyn_str->String));
-	memcpy(dyn_str->String, s, s_length_backup + 1);
+	memcpy(dyn_str->String, s, s_length + 1);
 
 	return dyn_str;
 }
@@ -80,35 +91,44 @@ size_t dyn_str_len(dyn_str_t dyn_str)
 // extend dynamic string
 _Bool dyn_str_extend(dyn_str_t dyn_str, char *s)
 {
-	// check whether there is enough space available to extend
+	// calculate the size of the resultant string required
 	size_t s_length = strlen(s);
 	size_t required = dyn_str->Length + s_length + 1;
+
+	// check whether the capacity is enough
 	if(required > dyn_str->Capacity)
 	{
-		// not enough space
-		// double the capacity of the dynamic array
-		dyn_str->Capacity <<= 1;
+		// capacity is not enough
+		// keep doubling the capacity until it is enough
+		while(required > dyn_str->Capacity)
+		{
+			dyn_str->Capacity <<= 1;
+		}
+
+		// allocate the above-calculated amount of space
 		char *temp = realloc(dyn_str->String, dyn_str->Capacity * sizeof *temp);
 		if(temp == NULL)
 		{
 			printf("Failed to extend dynamic string.\n");
-			return 0;
+			return FAILURE_RETURN_VALUE;
 		}
 		dyn_str->String = temp;
 	}
 
 	// now there is enough space to extend the string
 	// append the second string to the first
+	// jump to the null byte position of first string
+	// then copy the second string from there
 	char *ptr = dyn_str->String + dyn_str->Length;
 	memcpy(ptr, s, s_length + 1);
 	dyn_str->Length = required - 1;
 
-	return 1;
+	return SUCCESS_RETURN_VALUE;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// delete synamic string
+// delete dynamic string
 void dyn_str_delete(dyn_str_t dyn_str)
 {
 	free(dyn_str->String);
@@ -116,29 +136,68 @@ void dyn_str_delete(dyn_str_t dyn_str)
 	return;
 }
 
-// ///////////////////////////////////////////////////////////////////////////////
-// 
-// // pop the last element in the array
-// char dyn_arr_pop(Array *a, _Bool clear)
-// {
-// 	// cannot pop an empty array
-// 	if(a->length == 0)
-// 	{
-// 		printf("Cannot pop an empty dynamic array!\n");
-// 		return 0;
-// 	}
-// 
-// 	// decrement the array length
-// 	// but do not decrease the capacity of the array
-// 	char popped_element;
-// 	popped_element = a->array[--a->length];
-// 
-// 	// erase the element if required
-// 	if(clear)
-// 	{
-// 		a->array[a->length] = 0;
-// 	}
-// 
-// 	return popped_element;
-// }
+///////////////////////////////////////////////////////////////////////////////
+
+// read contents of a file into a string
+dyn_str_t dyn_str_read(FILE *fptr)
+{
+	// determine the size of the file
+	fseek(fptr, 0, SEEK_END);
+	long int size = ftell(fptr);
+	rewind(fptr);
+
+	// allocate space for dynamic string
+	// there should enough space to store the file contents as a string
+	// thus, calculate 'Capacity' like it is done in 'dyn_str_init'
+	// however, 'Length' shall be initialised to zero
+	// because text from the file is yet to be added to the string
+	dyn_str_t dyn_str = malloc(sizeof *dyn_str);
+	int power = nearest_power_of_2(size);
+	dyn_str->Capacity = 1 << (size_t)power;
+	dyn_str->Length = size;
+	dyn_str->String = malloc(dyn_str->Capacity * sizeof *(dyn_str->String));
+	
+	// buffer to store blocks of text from the file
+	fread(dyn_str->String, 1, size, fptr);
+	dyn_str->String[size] = '\0';
+
+	return dyn_str;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+// locate the first occurrence of a substring in a string
+// inline char *dyn_str_find(dyn_str_t dyn_str, char *s) __attribute__((always_inline));
+char *dyn_str_find(dyn_str_t dyn_str, char *s)
+{
+	return strstr(dyn_str->String, s);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+// locate the last occurrence of a substring in a string
+// there is no 'strrstr' in the standard library
+// also, 'strrchr' scans from the beginning of a string
+// hence, this function is implemented from scratch
+char *dyn_str_rfind(dyn_str_t dyn_str, char *s)
+{
+	// jump to the end of the string
+	// this is where the substring search will start
+	size_t s_length = strlen(s);
+	char *position = dyn_str->String + dyn_str->Length - s_length;
+
+	// keep decrementing the pointer
+	// when first character match is found, compare the whole string
+	// when pointer crosses the start of the main string, stop
+	while(position >= dyn_str->String)
+	{
+		if(*position == *s && !strncmp(position, s, s_length))
+		{
+			return position;
+		}
+		--position;
+	}
+
+	return NULL;
+}
 
