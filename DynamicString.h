@@ -5,6 +5,8 @@
 #define FAILURE_RETURN_VALUE 0
 #define SUCCESS_RETURN_VALUE 1
 
+#define _FILE_OFFSET_BITS 64
+
 ///////////////////////////////////////////////////////////////////////////////
 
 // dynamic string structure
@@ -51,9 +53,10 @@ dyn_str_t dyn_str_init(char *s)
 	// set attributes of struct
 	// 'Capacity' shall always be greater than 'Length'
 	// because an extra slot is required for '\0'
-	dyn_str->Capacity = 1 << (size_t)power;
+	dyn_str->Capacity = (size_t)1 << power;
 	dyn_str->Length = s_length;
-	dyn_str->String = malloc(dyn_str->Capacity * sizeof *(dyn_str->String));
+	dyn_str->String = malloc(dyn_str->Capacity
+	                         * sizeof *(dyn_str->String));
 	memcpy(dyn_str->String, s, s_length + 1);
 
 	return dyn_str;
@@ -106,7 +109,8 @@ _Bool dyn_str_extend(dyn_str_t dyn_str, char *s)
 		}
 
 		// allocate the above-calculated amount of space
-		char *temp = realloc(dyn_str->String, dyn_str->Capacity * sizeof *temp);
+		char *temp = realloc(dyn_str->String,
+		                     dyn_str->Capacity * sizeof *temp);
 		if(temp == NULL)
 		{
 			printf("Failed to extend dynamic string.\n");
@@ -139,12 +143,18 @@ void dyn_str_delete(dyn_str_t dyn_str)
 ///////////////////////////////////////////////////////////////////////////////
 
 // read contents of a file into a string
-dyn_str_t dyn_str_read(FILE *fptr)
+dyn_str_t dyn_str_read(FILE *fptr, off_t maximum_size)
 {
 	// determine the size of the file
 	fseek(fptr, 0, SEEK_END);
-	long int size = ftell(fptr);
-	rewind(fptr);
+	off_t size = ftello(fptr);
+
+	// if the file size exceeds the limit specified, don't read the file
+	// low-memory systems will get a chance to prevent a freeze
+	if(maximum_size != 0 && size > maximum_size)
+	{
+		return NULL;
+	}
 
 	// allocate space for dynamic string
 	// there should enough space to store the file contents as a string
@@ -153,11 +163,12 @@ dyn_str_t dyn_str_read(FILE *fptr)
 	// because text from the file is yet to be added to the string
 	dyn_str_t dyn_str = malloc(sizeof *dyn_str);
 	int power = nearest_power_of_2(size);
-	dyn_str->Capacity = 1 << (size_t)power;
+	dyn_str->Capacity = (size_t)1 << power;
 	dyn_str->Length = size;
-	dyn_str->String = malloc(dyn_str->Capacity * sizeof *(dyn_str->String));
+	dyn_str->String = malloc(dyn_str->Capacity
+	                         * sizeof *(dyn_str->String));
 	
-	// buffer to store blocks of text from the file
+	// read the entire file into memory
 	fread(dyn_str->String, 1, size, fptr);
 	dyn_str->String[size] = '\0';
 
@@ -167,7 +178,6 @@ dyn_str_t dyn_str_read(FILE *fptr)
 ///////////////////////////////////////////////////////////////////////////////
 
 // locate the first occurrence of a substring in a string
-// inline char *dyn_str_find(dyn_str_t dyn_str, char *s) __attribute__((always_inline));
 char *dyn_str_find(dyn_str_t dyn_str, char *s)
 {
 	return strstr(dyn_str->String, s);

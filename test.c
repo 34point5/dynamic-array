@@ -5,18 +5,24 @@
 
 #include "DynamicString.h"
 
-char *strrstr(const char *s, const char *m) {
-    char *last = NULL;
-    size_t n = strlen(m);
-
-    while ((s = strchr(s, *m)) != NULL) {
-        if (!strncmp(s, m, n))
-            last = (char *)s;
-        if (*s++ == '\0')
-            break;
-    }
-    return last;
+void f1(void)
+{
+	printf("f1\n");
+	return;
 }
+void f2(void)
+{
+	printf("f2\n");
+	return;
+}
+void f3(void)
+{
+	printf("f3\n");
+	return;
+}
+
+
+
 int main(int const argc, char const *argv[])
 {
 	printf("executing:\n");
@@ -27,13 +33,13 @@ int main(int const argc, char const *argv[])
 	}
 	printf("\n\n");
 
-	dyn_str_t s = dyn_str_init("boo");
+	dyn_str_t s = dyn_str_init("ntreiuj");
 	dyn_str_show(s);
 
 	dyn_str_extend(s, "b");
 	dyn_str_show(s);
 
-	dyn_str_extend(s, "ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttits");
+	dyn_str_extend(s, "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt");
 	dyn_str_show(s);
 
 	dyn_str_delete(s);
@@ -42,52 +48,23 @@ int main(int const argc, char const *argv[])
 	clock_t start, stop;
 	start = clock();
 	FILE *fptr = fopen(argv[1], "r");
-	s = dyn_str_read(fptr);
-	char *ptr = dyn_str_rfind(s, "tits");
-	// char *ptr = dyn_str_find(s, "tits");
+	s = dyn_str_read(fptr, 183936241);
+	if(s != NULL)
+	{
+		char *ptr = dyn_str_find(s, "is");
+	}
 	fclose(fptr);
 	stop = clock();
 	printf("%lf\n", (double)(stop - start) / CLOCKS_PER_SEC);
-	// printf("%s\n", strstr(s->String, "boobsboobsboobstits"));
-	// printf("%s\n", dyn_str_find(s, "boobsboobsboobstits"));
+	// printf("%p\n\n", ptr);
 
-	printf("rfind\n");
-	// char *ptr = dyn_str_rfind(s, "Nature....");
-	if(ptr == NULL)
+	typedef void (*f)(void);
+	f func[3] = {&f1, &f2, &f3};
+	char *error_strings[] = {"water", "smoke", "fire"};
+	for(int i = 0; i < 3; ++i)
 	{
-		printf("not found\n");
-	}
-	else
-	{
-		printf("found: %s\n", ptr);
-	}
-
-	if(0 && strstr("abab", "ba"))
-	{
-		printf("substring\n");
-		char a[2048];
-		printf("%s\n", realpath(argv[1], a));
-    DIR *d;
-
-    struct dirent *dir;
-
-    d = opendir(".");
-
-    if (d)
-
-    {
-
-        while ((dir = readdir(d)) != NULL)
-
-        {
-
-            printf("%s\n", dir->d_name);
-
-        }
-
-        closedir(d);
-
-    }
+		printf("%s\t", error_strings[i]);
+		func[i]();
 	}
 }
 
